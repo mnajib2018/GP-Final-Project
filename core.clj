@@ -17,6 +17,33 @@
    'doble
    ))
 
+(defn push-to-stack
+  "Pushes item onto stack in state, returning the resulting state."
+  [state stack item]
+  (update state stack conj item)
+  )
+
+(defn pop-stack
+  "Removes top item of stack, returning the resulting state."
+  [state stack]
+  (update state stack rest)
+  )
+
+(defn peek-stack
+  "Returns top item on a stack. If stack is empty, returns :no-stack-item"
+  [state stack]
+  (if (empty? (get state stack))
+    :no-stack-item
+    (first (get state stack))
+  ))
+
+(defn empty-stack?
+  "Returns true if the stack is empty in state."
+  [state stack]
+  (empty? (get state stack))
+  )
+
+
 (defn order
   "swap the indicex at x and y if element at x is
   larger than the one at y."
@@ -67,14 +94,14 @@
         new-state (pop-stack (pop-stack (pop-stack state :integer) :integer) :exec)]
     (if (= destination current)
       (push-to-stack 
-      	           (push-to-stack new-state :exec code) 
-      	           :integer 
-      	           current) ; correct till here
+                   (push-to-stack new-state :exec code) 
+                   :integer 
+                   current) ; correct till here
       (push-to-stack 
-      				(push-to-stack 
-      					(push-to-stack 
-      						(push-to-stack 
-      								(push-to-stack (push-to-stack new-state :exec code) :integer current)
+              (push-to-stack 
+                (push-to-stack 
+                  (push-to-stack 
+                      (push-to-stack (push-to-stack new-state :exec code) :integer current)
                       :exec 
                       'exec-do-range)
                   :exec 
@@ -87,13 +114,26 @@
               code))))
 
 
+(defn order
+  [state]
+  (let [index-1 (peek-stack state :exec)
+        index-2 (peek-stack (pop-stack state :exec) :exec)
+        element-in1 (nth (get state :input_vector) index-1)
+        element-in2 (nth (get state :input_vector) index-2)
+        new-state (pop-stack (pop-stack state :exec) :exec)]
+        (if (> element-in1 element-in2)
+        (let
+         [swap-state (assoc-in new-state [:input_vector] (assoc (get new-state :input_vector) index-2 element-in1))]
+         (assoc-in swap-state [:input_vector] (assoc (get swap-state :input_vector) index-1 element-in2)))
+         (do)))) 
+
 
 ;;;;;;;;
 ;;Examples
 
 (def example-push-state
-  {:exec '(code)
-   :input_vector [1.0, 2.0, 4.0, 5.0, 6.0]
+  {:exec '(0 1)
+   :input_vector [2.0, 1.0, 4.0, 5.0, 6.0]
    :integer '(5 2 1)
    :length '()})
 
