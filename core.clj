@@ -44,25 +44,17 @@
   )
 
 
-(defn order
-  "swap the indicex at x and y if element at x is
-  larger than the one at y."
-  [state x y]
-  (def first (nth (get state :input_vector) x))
-  (def second (nth (get state :input_vector) y))
-  (if (> x  y)
-    ((assoc (get state :input_vector) y first)
-     (assoc (get state :input_vector) x second))))
-
 (defn inc1+
   "returns the parameter incremented by 1"
-  [n]
-  (inc c))
+  [state]
+  (let [top-integer (peek-stack state :integer)]
+  (inc top-integer)))
 
 (defn dec1-
-  "returns the parameter incremented by 1"
-  [n]
-  (dec c))
+  "returns the top integer decremented by 1"
+  [state]
+  (let [top-integer (peek-stack state :integer)]
+  (dec top-integer)))
 
 (defn integer_-
   "Subtracts the top two integers and leaves result on the integer stack.
@@ -70,11 +62,10 @@
   [x y]
   (- x y))
 
-
-
 (defn current_index
   [state]
-  (first (get state :indices)))
+  (if (empty? (get state :integer)))
+  (first (get state :integer)))
 
 (defn exec-do-range
   "CODE.DO*RANGE: An iteration instruction that executes the top item on the CODE stack a number of times that depends on the top two integers,
@@ -114,19 +105,21 @@
               code))))
 
 
-(defn order
+(defn order-index
   [state]
-  (let [index-1 (peek-stack state :exec)
-        index-2 (peek-stack (pop-stack state :exec) :exec)
-        element-in1 (nth (get state :input_vector) index-1)
-        element-in2 (nth (get state :input_vector) index-2)
+  (let [index-2 (peek-stack state :integer)
+        index-1 (dec index-2)
+        length  5
         new-state (pop-stack (pop-stack state :exec) :exec)]
+        (if (and (>= index-1 0) (< index-2 length))
+          (let [element-in1 (nth (get state :input_vector) index-1)
+                element-in2 (nth (get state :input_vector) index-2)]
         (if (> element-in1 element-in2)
         (let
          [swap-state (assoc-in new-state [:input_vector] (assoc (get new-state :input_vector) index-2 element-in1))]
          (assoc-in swap-state [:input_vector] (assoc (get swap-state :input_vector) index-1 element-in2)))
-         (do)))) 
-
+         (do)))
+          (do)))) 
 
 ;;;;;;;;
 ;;Examples
@@ -134,7 +127,7 @@
 (def example-push-state
   {:exec '(0 1)
    :input_vector [2.0, 1.0, 4.0, 5.0, 6.0]
-   :integer '(5 2 1)
+   :integer '(6 2 1)
    :length '()})
 
 
