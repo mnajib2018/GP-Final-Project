@@ -16,13 +16,19 @@
 
 (def empty-push-state
   {:exec '()
-   :input_vector'()
+   :input_vector '()
    :integer  '()
    :length  '()})
 
 (def state-2
-  {:exec '(exec-do-range order 0 1)
+  {:exec '((order 0 1) order)
    :input_vector [2.0, 1.0, 4.0, 5.0, 6.0]
+   :integer '(1)
+   :length '(5)})
+
+(def start-state
+  {:exec '()
+   :input_vector [2.0, 1.0, 5.0, 4.0, 3.0]
    :integer '()
    :length '()})
 
@@ -74,7 +80,7 @@
 
 (defn start_index
   [state]
-  (push-to-stack state :integer 0))
+  (push-to-stack state :integer 1))
 
 (defn calculate-length
   [state]
@@ -85,7 +91,7 @@
   (let [new-state (push-to-stack state :length (calculate-length state))]
   (if (empty? (get state :length))
         (push-to-stack new-state :integer (first (get new-state :length)))
-      (push-to-stack new-state :integer (first (get state :length))))))
+      (push-to-stack new-state :integer (first (get new-state :length))))))
 
 (defn exec-do-range
   "CODE.DO*RANGE: An iteration instruction that executes the top item on the CODE stack a number of times that depends on the top two integers,
@@ -103,6 +109,8 @@
         current (peek-stack (pop-stack state :integer) :integer)
         code (peek-stack state :exec)
         new-state (pop-stack (pop-stack (pop-stack state :integer) :integer) :exec)]
+    (if (or (= current :no-stack-item) (= code :no-stack-item))
+      state
     (if (= destination current)
       (push-to-stack 
                    (push-to-stack new-state :exec code) 
@@ -122,17 +130,18 @@
                   (dec current)
                   (inc current)))
               :exec 
-              code))))
+              code)))))
 
 
 (defn order
   [state]
   (if (empty? (get state :integer))
-    (do)
+    state
   (let [index-2 (peek-stack state :integer)
         index-1 (dec index-2)
         length  (calculate-length state)
-        new-state (pop-stack (pop-stack state :exec) :exec)]
+        ;new-state (pop-stack (pop-stack state :exec) :exec)
+        new-state state]
         (if (and (>= index-1 0) (< index-2 length))
           (let [element-in1 (nth (get state :input_vector) index-1)
                 element-in2 (nth (get state :input_vector) index-2)]
@@ -140,8 +149,8 @@
         (let
          [swap-state (assoc-in new-state [:input_vector] (assoc (get new-state :input_vector) index-2 element-in1))]
          (assoc-in swap-state [:input_vector] (assoc (get swap-state :input_vector) index-1 element-in2)))
-         (do)))
-          (do))))) 
+         new-state))
+          new-state)))) 
 
 ;;;;;;;;;;
 ;; Interpreter
@@ -165,10 +174,25 @@
   [new-push-state top]
   (cond 
     ;if integer, string or input push to its stack else return original state
-    (= (type top) (type 1))  (push-to-stack new-push-state :integer top) 
+    (= (type top) java.lang.Long)  (push-to-stack new-push-state :integer top) 
+    (= (type top) java.lang.Integer)  (push-to-stack new-push-state :integer top) 
     ;(= (type top) (type "abc"))  (push-to-stack new-push-state :string top)
     ;(= (type top) (type {:in1 1}))  (push-to-stack new-push-state :input top)
     :else new-push-state))
+
+
+(defn interpret-list-program
+  [push-state]
+  (loop [top (peek-stack push-state :exec)
+         new-state (pop-stack push-state :exec)]
+         (println "here",top, "state", new-state)
+         (if (empty? top)
+          new-state
+          (recur (rest top)
+                 (if (instruction? instructions (first top)) ; check instruct or literal
+                        ((eval (first top)) new-state) ; execute instruction
+                        (push-literal-to-stack new-state (first top)))))))
+
 
 
 (defn interpret-one-step
@@ -179,9 +203,12 @@
   [push-state]
   (let [top (peek-stack push-state :exec)
        new-push-state (pop-stack push-state :exec)] 
+       (println (type top), " type ", top, " ins? ", (instruction? instructions top))
+    (if (= (type top) (type '(x)))
+      (interpret-list-program push-state)
     (if (instruction? instructions top) ; check instruct or literal
       ((eval top) new-push-state) ; execute instruction
-      (push-literal-to-stack new-push-state top))))
+      (push-literal-to-stack new-push-state top)))))
 
 (defn load-program
   "adds a program to the exec stack"
@@ -195,6 +222,7 @@
   [program start-state]
   (let [loaded-state (load-program program start-state)]
   (loop [current-state loaded-state]
+    (println current-state,"here")
     (if (empty? (get current-state :exec)) 
       current-state ; state when exec is empty
       (let [new-state (interpret-one-step current-state)]
@@ -420,3 +448,21 @@
         (println "Best program size:" (count best-program))
         (println "Best total error:", (get best-individual :total-error))
         (println "Best errors:", (get best-individual :errors))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
